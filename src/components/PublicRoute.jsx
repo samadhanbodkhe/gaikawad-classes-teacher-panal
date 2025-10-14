@@ -2,9 +2,9 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
 const PublicRoute = ({ children }) => {
-    const staff = useSelector((state) => state.auth?.staff);
+    const teacher = useSelector((state) => state.auth?.teacher);
 
-    if (staff) {
+    if (teacher) {
         return <Navigate to="/" replace />;
     }
 

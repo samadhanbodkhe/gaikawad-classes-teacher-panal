@@ -1,20 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { authApi } from "../apis/authApi";
 
 const authSlice = createSlice({
-    name: "authSlice",
-    initialState: {
-        teacher: JSON.parse(localStorage.getItem("teacher")) || null,
+  name: "auth",
+  initialState: { teacher: null, token: null },
+  reducers: {
+    loginSuccess: (state, action) => {
+      state.teacher = action.payload.teacher;
+      state.token = action.payload.token;
     },
-    reducers: {},
-    extraReducers: builder => builder
-        .addMatcher(authApi.endpoints.verifyTeacher.matchFulfilled, (state, { payload }) => {
-            state.teacher = payload
-        })
-        .addMatcher(authApi.endpoints.logoutTeacher.matchFulfilled, (state, { payload }) => {
-            state.teacher = null
-        })
+    logout: (state) => {
+      state.teacher = null;
+      state.token = null;
+      localStorage.removeItem("token");
+      localStorage.removeItem("teacher");
+    },
+  },
+});
 
-})
-
-export default authSlice.reducer
+export const { loginSuccess, logout } = authSlice.actions;
+export default authSlice.reducer;
