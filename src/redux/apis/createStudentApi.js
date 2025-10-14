@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const createStudentApi = createApi({
     reducerPath: "createStudentApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${import.meta.env.VITE_BACKEND_URL}/student`,
+        baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/student`,
         credentials: "include",
     }),
     tagTypes: ["Student"],

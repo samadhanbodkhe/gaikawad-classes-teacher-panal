@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${import.meta.env.VITE_BACKEND_URL}/teacherAuth`,
+        baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/teacherAuth`,
         credentials: "include"
     }),
     tagTypes: ["auth","Profile"],

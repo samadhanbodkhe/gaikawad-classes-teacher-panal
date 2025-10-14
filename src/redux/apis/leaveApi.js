@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const leaveApi = createApi({
   reducerPath: "leaveApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_BACKEND_URL}/leaveRequest`,
+    baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/leaveRequest`,
     credentials: "include",
   }),
   tagTypes: ["Leave"],
