@@ -5,6 +5,11 @@ export const leaveApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/leaveRequest`,
     credentials: "include",
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem("token");
+      if (token) headers.set("authorization", `Bearer ${token}`);
+      return headers;
+    },
   }),
   tagTypes: ["Leave"],
   endpoints: (builder) => ({
