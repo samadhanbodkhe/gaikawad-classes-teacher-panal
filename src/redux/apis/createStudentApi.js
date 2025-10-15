@@ -5,13 +5,18 @@ export const createStudentApi = createApi({
     baseQuery: fetchBaseQuery({
         baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/student`,
         credentials: "include",
+        prepareHeaders: (headers) => {
+            const token = localStorage.getItem("token");
+            if (token) headers.set("authorization", `Bearer ${token}`);
+            return headers;
+        },
     }),
     tagTypes: ["Student"],
     endpoints: (builder) => ({
         createStudent: builder.mutation({
             query: (studentData) => ({
                 url: "/createStudent",
-                method: "POST", 
+                method: "POST",
                 body: studentData,
             }),
             invalidatesTags: ["Student"],
@@ -48,10 +53,10 @@ export const createStudentApi = createApi({
     }),
 });
 
-export const { 
-    useCreateStudentMutation, 
-    useGetAllStudentsQuery, 
-    useGetStudentByIdQuery, 
-    useUpdateStudentMutation, 
-    useDeleteStudentMutation 
+export const {
+    useCreateStudentMutation,
+    useGetAllStudentsQuery,
+    useGetStudentByIdQuery,
+    useUpdateStudentMutation,
+    useDeleteStudentMutation
 } = createStudentApi;

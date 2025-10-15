@@ -5,6 +5,11 @@ export const attendanceApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${import.meta.env.VITE_BACKEND_URL}/api/v1/attendance`,
     credentials: "include",
+    prepareHeaders: (headers) => {
+    const token = localStorage.getItem("token");
+    if (token) headers.set("authorization", `Bearer ${token}`);
+    return headers;
+  },
   }),
   tagTypes: ["Attendance"],
   endpoints: (builder) => ({
