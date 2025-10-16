@@ -60,16 +60,50 @@ const Profile = () => {
   // Refs to handle overlay clicks / escape
   const updateModalRef = useRef(null);
 
+  // Helper function to parse subjects from various formats
+  const parseSubjects = (subjects) => {
+    if (!subjects) return "";
+    
+    // If it's already a string, return it
+    if (typeof subjects === 'string') {
+      // Check if it's a stringified array
+      if (subjects.startsWith('[') || subjects.startsWith('"[')) {
+        try {
+          // Clean the string and parse
+          const cleanedString = subjects.replace(/^"|"$/g, '').replace(/\\"/g, '"');
+          const parsed = JSON.parse(cleanedString);
+          if (Array.isArray(parsed)) {
+            return parsed.join(", ");
+          }
+          return subjects;
+        } catch (error) {
+          console.warn('Failed to parse subjects:', error);
+          return subjects;
+        }
+      }
+      return subjects;
+    }
+    
+    // If it's an array, join it
+    if (Array.isArray(subjects)) {
+      return subjects.join(", ");
+    }
+    
+    return String(subjects);
+  };
+
   // Load profileResponse into local state
   useEffect(() => {
     if (profileResponse) {
       const t = profileResponse;
+      const parsedSubjects = parseSubjects(t.subjects);
+      
       setProfileData({
         name: t.name || "",
         email: t.email || "",
         mobile: t.mobile || "",
         qualification: t.qualification || "",
-        subjects: Array.isArray(t.subjects) ? t.subjects.join(", ") : t.subjects || "",
+        subjects: parsedSubjects,
         salaryType: t.salaryType || "fixed",
         baseSalary: t.baseSalary || "",
         documents: t.documents || [],
@@ -80,7 +114,7 @@ const Profile = () => {
         name: t.name || "",
         mobile: t.mobile || "",
         qualification: t.qualification || "",
-        subjects: Array.isArray(t.subjects) ? t.subjects.join(", ") : t.subjects || "",
+        subjects: parsedSubjects,
         salaryType: t.salaryType || "fixed",
         baseSalary: t.baseSalary || "",
         profileImageFile: null,
@@ -156,13 +190,14 @@ const Profile = () => {
       if (updateForm.qualification)
         formData.append("qualification", updateForm.qualification);
 
-      // Subjects: send JSON array (backend expects array)
+      // Subjects: send as comma-separated string (backend should handle parsing)
       if (updateForm.subjects) {
         const subjectsArray = updateForm.subjects
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean);
-        formData.append("subjects", JSON.stringify(subjectsArray));
+        // Send as simple string instead of JSON stringified
+        formData.append("subjects", subjectsArray.join(", "));
       }
 
       if (updateForm.salaryType) formData.append("salaryType", updateForm.salaryType);
@@ -176,7 +211,6 @@ const Profile = () => {
       // Documents (multiple)
       if (updateForm.documentsFiles && updateForm.documentsFiles.length > 0) {
         updateForm.documentsFiles.forEach((file) => {
-          // match backend field name "documents"
           formData.append("documents", file);
         });
       }
@@ -238,6 +272,16 @@ const Profile = () => {
     }
   };
 
+  // Get file name from URL
+  const getFileNameFromUrl = (url) => {
+    if (!url) return "Document";
+    try {
+      return url.split('/').pop() || "Document";
+    } catch {
+      return "Document";
+    }
+  };
+
   // Basic info loading or error UI
   if (isProfileLoading) {
     return (
@@ -290,7 +334,6 @@ const Profile = () => {
                 <div className="relative inline-block mb-3">
                   <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mx-auto overflow-hidden">
                     {profilePreview ? (
-                      // preview or profile url
                       <img src={profilePreview} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl font-bold text-white">{(profileData.name || "T").charAt(0)}</span>
@@ -356,7 +399,9 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm text-slate-600">Subjects</label>
-                  <div className="mt-1 p-3 bg-slate-50 rounded border border-slate-200">{profileData.subjects}</div>
+                  <div className="mt-1 p-3 bg-slate-50 rounded border border-slate-200">
+                    {profileData.subjects || "No subjects assigned"}
+                  </div>
                 </div>
 
                 <div>
@@ -372,21 +417,40 @@ const Profile = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-xl font-semibold mb-4">Documents</h3>
               {profileData.documents && profileData.documents.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {profileData.documents.map((d, i) => (
-                    <div key={i} className="border rounded p-4 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">Document {i + 1}</div>
-                        <div className="text-sm text-slate-500">{d.split("/").pop()}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {profileData.documents.map((documentUrl, index) => (
+                    <div key={index} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-sm">
+                            {getFileNameFromUrl(documentUrl).charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Doc {index + 1}
+                        </span>
                       </div>
-                      <a href={d} target="_blank" rel="noreferrer" className="text-slate-700">
-                        View
+                      <div className="mb-2">
+                        <div className="font-medium text-slate-900 text-sm truncate">
+                          {getFileNameFromUrl(documentUrl)}
+                        </div>
+                      </div>
+                      <a 
+                        href={documentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center px-3 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors"
+                      >
+                        View Document
                       </a>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center text-slate-600">No documents uploaded</div>
+                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-lg">
+                  <div className="text-slate-400 mb-2">No documents uploaded</div>
+                  <div className="text-sm text-slate-500">Upload documents to see them here</div>
+                </div>
               )}
             </div>
           </div>
@@ -461,7 +525,7 @@ const Profile = () => {
                     onChange={handleChange}
                     placeholder="Math, Physics, Chemistry"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Comma separated</p>
+                  <p className="text-xs text-slate-500 mt-1">Enter subjects separated by commas</p>
                 </div>
 
                 <div>
@@ -487,8 +551,9 @@ const Profile = () => {
                 <div className="md:col-span-2">
                   <label className="block text-sm text-slate-600 mb-1">Upload Documents</label>
 
-                  <div className="border border-dashed rounded p-3 relative">
-                    <div className="text-sm text-slate-600">Click to add files (pdf, jpg, png, docx)</div>
+                  <div className="border border-dashed border-slate-300 rounded-lg p-4 text-center relative">
+                    <div className="text-sm text-slate-600 mb-2">Click to add files (pdf, jpg, png, docx)</div>
+                    <div className="text-xs text-slate-500">Maximum file size: 5MB each</div>
 
                     <input
                       type="file"
@@ -501,11 +566,25 @@ const Profile = () => {
 
                   {/* Selected docs list */}
                   {docPreviews.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {docPreviews.map((d, i) => (
-                        <div key={i} className="flex items-center justify-between bg-slate-50 p-2 rounded border">
-                          <div className="text-sm">{d.name}</div>
-                          <button onClick={() => removeSelectedDocument(i)} className="text-xs text-red-600">
+                    <div className="mt-3 space-y-2">
+                      <div className="text-sm font-medium text-slate-700">Selected files:</div>
+                      {docPreviews.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                              <span className="text-blue-600 text-xs font-bold">DOC</span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-slate-900">{doc.name}</div>
+                              <div className="text-xs text-slate-500">
+                                {(doc.size / (1024 * 1024)).toFixed(2)} MB
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => removeSelectedDocument(index)} 
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
                             Remove
                           </button>
                         </div>
@@ -518,14 +597,14 @@ const Profile = () => {
 
             <div className="p-5 border-t flex justify-end gap-3">
               <button
-                className="px-4 py-2 border rounded text-slate-700"
+                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
                 onClick={() => setShowUpdateModal(false)}
                 disabled={isUpdating}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-slate-900 text-white rounded"
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
                 onClick={handleProfileUpdate}
                 disabled={isUpdating}
               >
@@ -552,7 +631,7 @@ const Profile = () => {
 
             <div className="p-5 space-y-3">
               <button
-                className="w-full text-left p-3 border rounded"
+                className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 onClick={() => {
                   handleLogout();
                   setShowActionModal(false);
@@ -562,7 +641,7 @@ const Profile = () => {
               </button>
 
               <button
-                className="w-full text-left p-3 border rounded text-red-600"
+                className="w-full text-left p-3 border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
                 onClick={() => {
                   setShowActionModal(false);
                   setShowDeleteModal(true);
@@ -573,7 +652,10 @@ const Profile = () => {
             </div>
 
             <div className="p-5 border-t">
-              <button className="w-full px-4 py-2 border rounded" onClick={() => setShowActionModal(false)}>
+              <button 
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors" 
+                onClick={() => setShowActionModal(false)}
+              >
                 Close
               </button>
             </div>
@@ -589,23 +671,28 @@ const Profile = () => {
         >
           <div className="bg-white rounded-xl shadow-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-2xl">⚠️</span>
+              </div>
               <h3 className="text-lg font-semibold mb-2">Delete Account</h3>
-              <p className="text-sm text-slate-600 mb-4">This action cannot be undone.</p>
+              <p className="text-sm text-slate-600 mb-4">
+                This action cannot be undone. All your data will be permanently removed.
+              </p>
 
               <div className="flex gap-3 justify-center">
                 <button
-                  className="px-4 py-2 border rounded"
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
                   onClick={() => setShowDeleteModal(false)}
                   disabled={isDeleting}
                 >
                   Cancel
                 </button>
                 <button
-                  className="px-4 py-2 bg-red-600 text-white rounded"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   onClick={confirmAndDelete}
                   disabled={isDeleting}
                 >
-                  {isDeleting ? "Deleting..." : "Delete"}
+                  {isDeleting ? "Deleting..." : "Delete Account"}
                 </button>
               </div>
             </div>
